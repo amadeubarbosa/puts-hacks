@@ -21,7 +21,7 @@ local function breakid(id)
 	return id:match("^%s*([^=<>!~]-)%s*[=<>!~]+%s*(.-)%s*$")
 end
 
-local module = {}
+local module = { breakid = breakid }
 
 function module.loadrepo(repopath)
 	local catalog = {}

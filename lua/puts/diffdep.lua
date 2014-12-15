@@ -17,9 +17,6 @@ local function depmap(deps)
 end
 
 local function geturl(desc)
-
---require("loop.debug.Viewer"):write(desc);print()
-
 	return desc.url or repository.catalog[desc.subpackage_of:gsub("%s*[=<>!~]+%s*", "-")].url
 end
 
