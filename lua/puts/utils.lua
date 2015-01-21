@@ -1,16 +1,27 @@
-local table = require "loop.table"
 local lfs = require "lfs"
+
+local function memoize (func)
+	return setmetatable({}, {__index = function(self, key)
+		local value = func(key)
+		if (value ~= nil) then
+			self[key] = value
+		end
+		return value
+	end})
+end
 
 local envmeta = {
 	__index = function(self, key)
-		return _ENV[key] or ""
+		return _G[key] or ""
 	end,
 }
 local function loaddesc(path)
 	local env = setmetatable({SVNREPURL="http://subversion.tecgraf.puc-rio.br/engdist"}, envmeta)
 	env.INSTALL = env
 	env.config = env
-	pcall(assert(loadfile(path, nil, env)))
+	local chunk = assert(loadfile(path, nil, env))
+	pcall(setfenv, chunk, env)
+	pcall(chunk)
 	setmetatable(env, nil)
 	env.INSTALL = nil
 	env.config = nil
@@ -25,8 +36,8 @@ local module = { breakid = breakid }
 
 function module.loadrepo(repopath)
 	local catalog = {}
-	local referees = table.memoize(function () return {} end)
-	local dependencies = table.memoize(function () return {} end)
+	local referees = memoize(function () return {} end)
+	local dependencies = memoize(function () return {} end)
 
 	for file in lfs.dir(repopath) do
 		if file:match("%.desc$") then

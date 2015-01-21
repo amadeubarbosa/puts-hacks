@@ -5,7 +5,7 @@ local repopath, outpath = ...
 
 local repository = assert(utils.loadrepo(repopath))
 local buildout = assert(io.open("build_"..outpath..".bat", "w"))
-local downout = assert(io.open("download_"..outpath..".sh", "w"))
+local downout = assert(io.open("download_"..outpath..".bat", "w"))
 
 buildout:write[[
 @echo off
@@ -26,9 +26,14 @@ if "%BUILDDIR%"=="" (
 ]]
 
 downout:write[[
-#!/bin/sh
+@echo off
 
-BUILDDIR=$1
+set BUILDDIR=%1
+
+if "%BUILDDIR%"=="" (
+	echo Missing argument! Please provide the build directory
+	goto USAGE
+)
 ]]
 
 local function outpackbuild(id, built)
@@ -46,15 +51,15 @@ local function outpackbuild(id, built)
 		if dir == nil then
 			dir = id
 		else
-			local name, version = breakid(dir)
+			local name, version = utils.breakid(dir)
 			dir = name.."-"..version
 		end
 		local url = desc.url
 		if url ~= nil then
 			if url:match("^git") then
-				downout:write("git clone "..url.." ${BUILDDIR}/"..id.."\n")
+				downout:write("git clone "..url.." %BUILDDIR%\\"..id.."\n")
 			elseif url:match("^https?://subversion%.tecgraf%.puc%-rio%.br/engdist") then
-				downout:write("svn co "..url.." ${BUILDDIR}/"..id.."\n")
+				downout:write("svn co "..url.." %BUILDDIR%\\"..id.."\n")
 			end
 		end
 		local builddesc = desc.build
@@ -99,6 +104,19 @@ goto END
 :USAGE
 
 echo Ex: ]]..outpath..[[.bat dll10 C:\Temp\OpenBus\Build
+
+:END
+
+cd %~dp0
+exit /B
+]])
+
+downout:write([[
+goto END
+
+:USAGE
+
+echo Ex: ]]..outpath..[[.bat C:\Temp\OpenBus\Build
 
 :END
 
