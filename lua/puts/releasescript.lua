@@ -129,7 +129,38 @@ local function checkversion(name, version, history)
 					break
 				end
 			end
-			newver = confirmvalue("Enter the new release of "..id, newver)
+			while true do
+				local selected = confirmvalue("Enter the release for "..id, newver)
+				local otherdesc = repository.catalog[name.."-"..selected]
+				if otherdesc ~= nil then
+					print("Exisiting release "..name.."-"..selected.." has the following differences:")
+					local url = geturl(desc)
+					local otherurl = geturl(otherdesc)
+					local svncmd = "svn mergeinfo --show-revs=eligible "..url.." "..otherurl
+					local revs = {}
+					for rev in string.gmatch(assert(io.popen(svncmd):read("*a")), "r(%d+)") do
+						revs[#revs+1] = rev
+					end
+					for index, rev in ipairs(revs) do
+						os.execute("svn log -r"..rev.." "..url)
+						local msg = "Show differences ("..index.."/"..#revs..")? (yes|no|stop)"
+						local asw = confirmvalue(msg, "no")
+						if string.find(asw, "s") ~= nil then
+							break
+						elseif string.find(asw, "y") ~= nil then
+							os.execute("svn diff -c"..rev.." "..url)
+						end
+					end
+					local msg = "Use this release anyway?"
+					if string.find(confirmvalue(msg, "no"), "y") ~= nil then
+						history[id] = selected
+						return history[id]
+					end
+				else
+					newver = selected
+					break
+				end
+			end
 			local url = desc.url
 			if url ~= nil then
 				local base = string.match(url, "(.-)/trunk$")
